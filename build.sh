@@ -63,78 +63,95 @@ buildROM () {
 
 repoSyncFull(){
 
-	echo "Deep refresh?"
-	echo -e "\e[1;91m(Including:Refresh manifests,force sync,Remake remotes)"
-	echo "Suggested for initial setups/maintainers/chickens..."
+	echo " "
+	echo "Did you update our device tree?"
+	echo "Our device tree directories:"
+	echo -e "\e[1;91mdevice/samsung/jf-common <--Cherry pick from CM nightly"
+	echo "device/samsung/jflte <--Let the main dev to maintain it...or you got the guts?"
 	echo -e "\e[0m "
-	select choice in "Yes" "No"; do
+	echo "Open a second terminal and update your device tree.I am waiting..."
+	echo " "
+	echo "Select 'I am ready!!',to move on, when you are :) "
+	select choice in "I am ready!!" "I am too lazy today"; do
 		case $choice in
-			Yes ) 
-				ISDEEP=true
-				echo "Cleaning old manifests..."
-				rm -rf .repo/local_*
-				rm -rf .repo/manifests
-				rm -rf .repo/manifest.xml
+			"I am ready!!" )
+				echo "Deep refresh?"
+				echo -e "\e[1;91m(Including:Refresh manifests,force sync,Remake remotes)"
+				echo "Suggested for initial setups/maintainers/chickens..."
+				echo -e "\e[0m "
+				select choice in "Yes" "No"; do
+					case $choice in
+						Yes ) 
+							ISDEEP=true
+						echo "Cleaning old manifests..."
+							rm -rf .repo/local_*
+							rm -rf .repo/manifests
+							rm -rf .repo/manifest.xml
+							echo " "
+							echo "Refreshing manifests..."
+							echo "Refreshing default manifest..."
+							echo " "
+							repo init -u git://github.com/JDCTeam/manifests.git -b cm-13.0-halaudio
+							echo " "
+							echo "Refreshing local manifest..."
+							git clone git://github.com/JDCTeam/local_manifests.git -b opt-cm-13.0 .repo/local_manifests
+							echo " "
+							repo sync --force-sync
+							break;;
+						No ) 
+							ISDEEP=false
+						break;;
+					esac;
+				done
+				# Sync the repo
+				echo "Syncing repositories..."
+				repo sync
+				if [ ! -d $PREBUILTS ]; then
+				# Download Toolbox
+					echo "Syncing prebuilts..."
+					./vendor/jdc/get-prebuilts
+				fi
 				echo " "
-				echo "Refreshing manifests..."
-				echo "Refreshing default manifest..."
-				echo " "
-				repo init -u git://github.com/JDCTeam/manifests.git -b cm-13.0-halaudio
-				echo " "
-				echo "Refreshing local manifest..."
-				git clone git://github.com/JDCTeam/local_manifests.git -b opt-cm-13.0 .repo/local_manifests
-				echo " "
-				repo sync --force-sync
-				break;;
-			No ) 
-				ISDEEP=false
-				break;;
-		esac;
-	done
-	
-        # Sync the repo
-	echo "Syncing repositories..."
-	repo sync
-	if [ ! -d $PREBUILTS ]; then
-	# Download Toolbox
-		echo "Syncing prebuilts..."
-		./vendor/jdc/get-prebuilts
-	fi
-	echo " "
-	echo -e "\e[1;91mIf local sources are older than remote's "
-	echo -e "\e[1;91ma message 'leaving DIR ,does not track upstream' will shown."
-	echo -e "\e[1;91mIts just an information."
-	echo -e "\e[0m "
+				echo -e "\e[1;91mIf local sources are older than remote's "
+				echo -e "\e[1;91ma message 'leaving DIR ,does not track upstream' will shown."
+				echo -e "\e[1;91mIts just an information."
+				echo -e "\e[0m "
 
-	echo "Upstream merging..."
-	echo -e "\e[1;91mTrying upstream merge the toolchains,will produce error messages. "
-	echo -e "\e[1;91mDo NOT pay attention to them.We do not upstream merge them.We got our own."
-	echo -e "\e[0m "
-	echo " "
-        ## local manifest location
-        ROOMSER=.repo/local_manifests/local_manifest.xml
-        # Lines to loop over
-        CHECK=$(cat ${ROOMSER} | grep -e "<remove-project" | cut -d= -f3 | sed 's/revision//1' | sed 's/\"//g' | sed 's|/>||g')
+				echo "Upstream merging..."
+				echo -e "\e[1;91mTrying upstream merge the toolchains,will produce error messages. "
+				echo -e "\e[1;91mDo NOT pay attention to them.We do not upstream merge them.We got our own."
+				echo -e "\e[0m "
+				echo " "
+      			        ## local manifest location
+        			ROOMSER=.repo/local_manifests/local_manifest.xml
+        			# Lines to loop over
+        			CHECK=$(cat ${ROOMSER} | grep -e "<remove-project" | cut -d= -f3 | sed 's/revision//1' | sed 's/\"//g' | sed 's|/>||g')
         
-        ## Upstream merging for forked repos
-        while read -r line; do
-            echo "Upstream merging for $line"
-            cd  "$line"
-            UPSTREAM=$(sed -n '1p' UPSTREAM)
-            BRANCH=$(sed -n '2p' UPSTREAM)
-	    REMOTE=$(sed -n '3p' UPSTREAM)
-	    PROJECT=$(sed -n '4p' UPSTREAM)
+        			## Upstream merging for forked repos
+        			while read -r line; do
+					echo "Upstream merging for $line"
+					cd  "$line"
+					UPSTREAM=$(sed -n '1p' UPSTREAM)
+					BRANCH=$(sed -n '2p' UPSTREAM)
+					REMOTE=$(sed -n '3p' UPSTREAM)
+					PROJECT=$(sed -n '4p' UPSTREAM)
 	    
-	    if [ "$ISDEEP" == "true" ]; then
-		echo "Recreating remote for "$line"..."
-		git remote remove origin
-		git remote add origin git@github.com:JDCTeam/"$PROJECT"
-	    fi;
-	    
-            git pull https://www.github.com/"$UPSTREAM" "$BRANCH"
-            git push "$REMOTE" HEAD:opt-"$BRANCH"
-            croot
-        done <<< "$CHECK"
+					if [ "$ISDEEP" == "true" ]; then
+						echo "Recreating remote for "$line"..."
+						git remote remove origin
+						git remote add origin git@github.com:JDCTeam/"$PROJECT"
+					fi;
+					git pull https://www.github.com/"$UPSTREAM" "$BRANCH"
+					git push "$REMOTE" HEAD:opt-"$BRANCH"
+					croot
+				done <<< "$CHECK"
+				break;;
+			"I am too lazy today" )
+				echo " "
+				echo "Fine.I wish tomorrow will be a better day."
+				break;;
+		esac
+	done
 }
 
 
