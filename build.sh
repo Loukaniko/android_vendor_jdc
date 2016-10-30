@@ -98,6 +98,7 @@ repoSyncFull(){
 							echo "Refreshing local manifest..."
 							git clone git://github.com/JDCTeam/local_manifests.git -b opt-cm-13.0 .repo/local_manifests
 							echo " "
+							echo "Forcely repo syncing..."
 							repo sync --force-sync
 							break;;
 						No ) 
@@ -105,9 +106,13 @@ repoSyncFull(){
 						break;;
 					esac;
 				done
-				# Sync the repo
-				echo "Syncing repositories..."
-				repo sync
+				
+				if [ "$ISDEEP" == "false" ]; then
+					# Sync the repo
+					echo "Syncing repositories..."
+					repo sync
+				fi;
+				
 				if [ ! -d $PREBUILTS ]; then
 				# Download Toolbox
 					echo "Syncing prebuilts..."
