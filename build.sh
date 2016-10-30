@@ -31,7 +31,7 @@ AROMA_DIR=aroma
 ALU_BUILD=build_kernel.sh
 ALU_CLEAN=clean-all.sh
 FILENAME=OptimizedCM-"$CM_VER"-"$(date +%Y%m%d)"-"$TARGET"-"$USER"
-PREBUILTS=vendor/jdc/proprietary
+PREBUILTS=vendor/jdc/proprietary/Toolbox.apk
 getlog=false
 LOG=""
 LOGFILE=buildResults-"$CM_VER"-"$(date +%Y%m%d)"-"$TARGET"-AROMA.log
@@ -61,13 +61,56 @@ buildROM () {
     
 }
 
-repoSync(){
-    ## Sync the repo
-    echo "Syncing repositories"
-    reposync
+repoSyncFull(){
 
-    if [ "$1" == "2" ]; then 
-        echo "Upstream merging"
+	echo "Deep refresh?"
+	echo -e "\e[1;91m(Including:Refresh manifests,force sync,Remake remotes)"
+	echo "Suggested for initial setups/maintainers/chickens..."
+	echo -e "\e[0m "
+	select choice in "Yes" "No"; do
+		case $choice in
+			Yes ) 
+				ISDEEP=true
+				echo "Cleaning old manifests..."
+				rm -rf .repo/local_*
+				rm -rf .repo/manifests
+				rm -rf .repo/manifest.xml
+				echo " "
+				echo "Refreshing manifests..."
+				echo "Refreshing default manifest..."
+				echo " "
+				repo init -u git://github.com/JDCTeam/manifests.git -b cm-13.0-halaudio
+				echo " "
+				echo "Refreshing local manifest..."
+				git clone git://github.com/JDCTeam/local_manifests.git -b opt-cm-13.0 .repo/local_manifests
+				echo " "
+				repo sync --force-sync
+				break;;
+			No ) 
+				ISDEEP=false
+				break;;
+		esac;
+	done
+	
+        # Sync the repo
+	echo "Syncing repositories..."
+	repo sync
+	if [ ! -d $PREBUILTS ]; then
+	# Download Toolbox
+		echo "Syncing prebuilts..."
+		./vendor/jdc/get-prebuilts
+	fi
+	echo " "
+	echo -e "\e[1;91mIf local sources are older than remote's "
+	echo -e "\e[1;91ma message 'leaving DIR ,does not track upstream' will shown."
+	echo -e "\e[1;91mIts just an information."
+	echo -e "\e[0m "
+
+	echo "Upstream merging..."
+	echo -e "\e[1;91mTrying upstream merge the toolchains,will produce error messages. "
+	echo -e "\e[1;91mDo NOT pay attention to them.We do not upstream merge them.We got our own."
+	echo -e "\e[0m "
+	echo " "
         ## local manifest location
         ROOMSER=.repo/local_manifests/local_manifest.xml
         # Lines to loop over
@@ -79,14 +122,21 @@ repoSync(){
             cd  "$line"
             UPSTREAM=$(sed -n '1p' UPSTREAM)
             BRANCH=$(sed -n '2p' UPSTREAM)
-            ORIGIN=$(sed -n '3p' UPSTREAM)
-            PUSH_BRANCH=
+	    REMOTE=$(sed -n '3p' UPSTREAM)
+	    PROJECT=$(sed -n '4p' UPSTREAM)
+	    
+	    if [ "$ISDEEP" == "true" ]; then
+		echo "Recreating remote for "$line"..."
+		git remote remove origin
+		git remote add origin git@github.com:JDCTeam/"$PROJECT"
+	    fi;
+	    
             git pull https://www.github.com/"$UPSTREAM" "$BRANCH"
-            git push "$ORIGIN" HEAD:opt-"$BRANCH"
+            git push "$REMOTE" HEAD:opt-"$BRANCH"
             croot
         done <<< "$CHECK"
-    fi
 }
+
 
 makeclean(){
     ## Fully wipe, including compiler cache
@@ -277,11 +327,10 @@ echo -e "\e[1;91mPlease make your selections carefully"
 echo -e "\e[0m "
 echo " "
 echo "Do you wish to build, sync or clean?"
-select build in "Build ROM" "Sync" "Sync and upstream merge" "Build Alucard Kernel" "Repack ROM" "Make Clean" "Make Clean (inc ccache)" "Make Clean All (inc ccache+Alucard)" "Push and flash" "Build ROM, Kernel and Repackage" "Add Aroma Installer to ROM" "Build ROM,kernel,repack,add aroma" "Exit"; do
+select build in "Build ROM" "Fully refresh sources and upstream merge" "Build Alucard Kernel" "Repack ROM" "Make Clean" "Make Clean (inc ccache)" "Make Clean All (inc ccache+Alucard)" "Push and flash" "Build ROM, Kernel and Repackage" "Add Aroma Installer to ROM" "Build ROM,kernel,repack,add aroma" "Exit"; do
     case $build in
         "Build ROM" ) buildROM; anythingElse; break;;
-        "Sync" ) repoSync 1; anythingElse; break;;
-        "Sync and upstream merge" ) repoSync 2; anythingElse; break;;
+        "Fully refresh sources and upstream merge" ) repoSyncFull ; anythingElse; break;;
         "Build Alucard Kernel" ) checkRamdisk; anythingElse; break;;
         "Repack ROM" ) repackRom; anythingElse; break;;
         "Make Clean" ) make clean; anythingElse; break;;
