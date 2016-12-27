@@ -287,8 +287,13 @@ repackAll()
 }
 buildSide()
 {
-	echo "Cleaning..."
-	make clean && make clobber
+	echo "ROMs OUT folder is going to be deleted.Proceed?"
+	select option in "Yes" "No"; do
+		case $option in
+			Yes ) echo "Cleaning..."; make clean && make clobber; break;;
+			No ) break;;
+		esac
+	done
 	cd kernel/samsung/sidecore
 	echo "Cleaning kernel dir..."
 	make mrproper && make clean
