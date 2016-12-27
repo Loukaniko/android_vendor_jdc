@@ -287,6 +287,8 @@ repackAll()
 }
 buildSide()
 {
+	echo "Cleaning..."
+	make clean && make clobber
 	cd kernel/samsung/sidecore
 	echo "Cleaning kernel dir..."
 	make mrproper && make clean
