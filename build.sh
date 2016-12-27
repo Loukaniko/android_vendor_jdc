@@ -305,6 +305,7 @@ buildSide()
 	make -j5 bootimage
 	cp -R out/target/product/jflte/boot.img kernel/samsung/sidecore/OUT
 	BUILDNAME=SideCore-SGS4-NOUGAT-"$(date +%Y%m%d)".zip
+	cd kernel/samsung/sidecore/OUT
 	zip -r $BUILDNAME .;
 	
 }
