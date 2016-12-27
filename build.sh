@@ -285,6 +285,22 @@ repackAll()
     
     
 }
+buildSide()
+{
+	cd kernel/samsung/sidecore
+	echo "Cleaning kernel dir..."
+	make mrproper && make clean
+	ccache -C && ccache -c
+	rm -rf OUT/Side*
+	rm -rf OUT/boot.img
+	cd ../../..
+	echo "Building..."
+	make -j5 bootimage
+	cp -R out/target/product/jflte/boot.img kernel/samsung/sidecore/OUT
+	BUILDNAME=SideCore-SGS4-NOUGAT-"$(date +%Y%m%d)".zip
+	zip -r $BUILDNAME .;
+	
+}
 
 echo " "
 echo -e "\e[1;91mWelcome to the $TEAM_NAME build script"
@@ -297,7 +313,7 @@ echo " "
 echo -e "\e[1;91mPlease make your selections carefully"
 echo -e "\e[0m "
 echo " "
-select build in "Refresh manifest,repo sync and upstream merge" "Refresh manifest,repo sync" "Build ROM" "Build ROM,kernel and repack" "Add Aroma Installer to ROM" "Build Alucard Kernel" "Repack with Alucard" "Repack with Alucard AND aroma" "Refresh build directory" "Refresh manifest" "Deep clean(inc. ccache)" "Exit"; do
+select build in "Refresh manifest,repo sync and upstream merge" "Refresh manifest,repo sync" "Build ROM" "Build ROM,kernel and repack" "Add Aroma Installer to ROM" "Build Alucard Kernel" "Repack with Alucard" "Repack with Alucard AND aroma" "Refresh build directory" "Refresh manifest" "Deep clean(inc. ccache)" "Build SideCore" "Exit"; do
 	case $build in
 		"Refresh manifest,repo sync and upstream merge" ) upstreamMerge; getBuild;anythingElse; break;;
 		"Refresh manifest,repo sync" ) repoSync; anythingElse; break;;
@@ -310,6 +326,7 @@ select build in "Refresh manifest,repo sync and upstream merge" "Refresh manifes
 		"Refresh build directory" ) getBuild; anythingElse; break;;
 		"Refresh manifest" ) getMani; anythingElse; break;;
 		"Deep clean(inc. ccache)" ) aluclean=true; deepClean; anythingElse; break;;
+		"Build SideCore" ) buildSide; break;;
 		"Exit" ) exit 0; break;;
 	esac
 done
